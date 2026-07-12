@@ -66,10 +66,15 @@ def _frame_angle(le,arrh,throw,o=OVERSHOOT): return -round(math.degrees(math.ata
 def _trim(ax,fa,sp,h,first,le): return 100.0+(le+0.17-min(p[2] for _,p in _chain((ax,0,100.0),fa,sp,h,first)))
 def ksl_setup(s): return 1 if s>=2 else 0
 
-def design(system, throw):
-    """Return the house geometry for a line array of `system` covering `throw` metres."""
+def design(system, throw, n_override=None):
+    """Return the house geometry for a line array of `system` covering `throw` metres.
+
+    If n_override is set, use that box count and re-derive splay/levels/trim/frame
+    from it (guided acoustics). Default path (n_override=None) is unchanged.
+    """
     sp=SPECS[system]; te=min(throw, THROW_WINDOW)
-    n=mains_count(te); splays=deep_j_splay(n); levels=mains_levels(n)
+    n=int(n_override) if n_override is not None else mains_count(te)
+    splays=deep_j_splay(n); levels=mains_levels(n)
     arr_h=round(n*sp["bph"],2)
     target_le=te*math.tan(math.radians(TARGET_FRAME+OVERSHOOT))+1.7-arr_h
     le=min(MAINS_LOWEST_EDGE, max(0.5, target_le))
@@ -77,10 +82,10 @@ def design(system, throw):
     z=_trim(MAINS_X, fa, splays, sp["box_h"], sp["first"], le)
     return dict(n=n, splays=splays, levels=levels, le=le, fa=fa, z=z, throw=te)
 
-def build_line(api, name, system, x, yc, throw, haim=0.0, delay=None, paired=True, k12=True, level_offset=0.0):
+def build_line(api, name, system, x, yc, throw, haim=0.0, delay=None, paired=True, k12=True, level_offset=0.0, n_override=None):
     """Build a line array (paired L/R by default) with ALL house principles.
     Used identically for mains, out fills and delays."""
-    sp=SPECS[system]; d=design(system, throw); n=d["n"]; z=d["z"]; fa=d["fa"]
+    sp=SPECS[system]; d=design(system, throw, n_override=n_override); n=d["n"]; z=d["z"]; fa=d["fa"]
     dly = 0.0062 if system=="KSL" else 0.0003
     if delay is not None: dly=delay
     n_k12 = (2 if n>=8 else 0) if (system=="KSL" and k12) else 0
@@ -121,11 +126,30 @@ def build_line(api, name, system, x, yc, throw, haim=0.0, delay=None, paired=Tru
 SUB_SPACING=7.0*FT
 SUB_TAPER=[0.004556,0.001547,0.000671,0.0003,0.0003,0.000671,0.001547,0.004556]
 def _sub_taper(ns): mid=(ns-1)/2; return [round(0.0003+abs(i-mid)*0.0011,6) for i in range(ns)]
-def build_sub_array(api, width_m=46.0):
-    ns=sub_stacks(width_m)
+def build_sub_array(api, width_m=46.0, adv=None, state=None):
+    from adv import AdvState
+    state = state or AdvState(adv)
+    subs = state.section("subs")
+    ns = sub_stacks(width_m)
+    if subs.get("stacks") is not None:
+        ns, _ = state.clamp_int(
+            subs["stacks"], 3, 14, "subs.stacks",
+            "Sub stack count limited to 3–14.",
+        )
+    spacing = SUB_SPACING
+    if subs.get("spacing_ft") is not None:
+        sp_ft, _ = state.clamp(
+            subs["spacing_ft"], 5.0, 8.0, "subs.spacing_ft",
+            "Sub spacing limited to 5–8 ft centre-to-centre.",
+        )
+        spacing = sp_ft * FT
+    state.effective["subs"] = {
+        "stacks": ns,
+        "spacing_ft": round(spacing / FT, 2),
+    }
     gid=api.add_group("Sub Array",3,"SL-SUB",(0,0,0),mounting=1,linkmode=1,symmetric=1,
                      extra=dict(BoxType="SL-SUB",NominalDispersionAngle=90.0))
-    ys=[(i-(ns-1)/2)*-SUB_SPACING for i in range(ns)]; taper=SUB_TAPER if ns==8 else _sub_taper(ns)
+    ys=[(i-(ns-1)/2)*-spacing for i in range(ns)]; taper=SUB_TAPER if ns==8 else _sub_taper(ns)
     for p,(yy,dly) in enumerate(zip(ys,taper),1):
         api.add_cab(gid,p,114,"SL-SUB",0,0,(1.0,yy,0.0),order=1,setup=0,delay=dly,cpp=2,sw=(0,0,0,-5.5,0.5),nxt="SL-SUB",align=0)
         api.add_cab(gid,p,114,"SL-SUB",0,0,(0.05,yy,0.6),order=2,setup=0,delay=dly,cpp=1,sw=(0,0,0,-5.5,0.5),prev="SL-SUB",align=0)
@@ -136,8 +160,22 @@ def _ff_layout(nff, span_ft):
         lvl=-4.0 if abs(y)>=span_ft*0.75 else (-1.0 if abs(y)>=span_ft*0.4 else 0.0)
         lay.append((y,lvl,90 if y>0 else 270))
     return lay
-def build_front_fills(api, width_m=46.0, mains_y_m=10.67):
-    nff=ff_count(width_m); layout=_ff_layout(nff, ff_span_ft(mains_y_m))
+def build_front_fills(api, width_m=46.0, mains_y_m=10.67, adv=None, state=None):
+    from adv import AdvState
+    state = state or AdvState(adv)
+    ff = state.section("front_fills")
+    enabled = True if ff.get("enabled") is None else bool(ff["enabled"])
+    if not enabled:
+        state.effective["front_fills"] = {"enabled": False, "count": 0}
+        return
+    nff = ff_count(width_m)
+    if ff.get("count") is not None:
+        nff, _ = state.clamp_even(
+            ff["count"], 4, 12, "front_fills.count",
+            "Front-fill count must be even and between 4 and 12.",
+        )
+    state.effective["front_fills"] = {"enabled": True, "count": nff}
+    layout=_ff_layout(nff, ff_span_ft(mains_y_m))
     gid=api.add_group("Front Fills",2,"A-Series",(0,0,0),mounting=1,linkmode=1,symmetric=1); ids=[]
     for i,(yft,lvl,rot) in enumerate(layout):
         ids.append(api.add_cab(gid,i+1,127,"AL90 PS",0,22.0,(0.6,yft*FT,4.4*FT),rot=float(rot),setup=1,
@@ -145,12 +183,37 @@ def build_front_fills(api, width_m=46.0, mains_y_m=10.67):
     half=len(ids)//2
     for k in range(half): api.link(ids[len(ids)-1-k], ids[k])
 
-def build_core(api, depth_m, width_m, mains_variance_limit_m=None):
+def build_core(api, depth_m, width_m, mains_variance_limit_m=None, adv=None, state=None):
+    from adv import AdvState
+    state = state or AdvState(adv)
     far=FRONT_OFFSET+depth_m; throw=min(far-MAINS_X, THROW_WINDOW)
-    my=mains_y(width_m)
-    d=build_line(api,"Mains","KSL",MAINS_X,my,throw)      # <-- mains via the shared builder
-    build_sub_array(api, width_m)
-    build_front_fills(api, width_m, my)
+    mains = state.section("mains")
+    # L/R spread is centre-to-centre in feet; OriginY = half of that.
+    if mains.get("spread_ft") is not None:
+        lo_ft = 2.0 * 2.0 / FT                          # half ≥ ~2 m
+        hi_ft = 2.0 * max(2.0, width_m / 2.0 - 0.5) / FT  # both hangs inside audience
+        spread_ft, _ = state.clamp(
+            mains["spread_ft"], lo_ft, hi_ft, "mains.spread_ft",
+            "Mains spread limited to keep both hangs inside the audience width.",
+        )
+        my = round(spread_ft / 2.0 * FT, 2)
+    else:
+        my = mains_y(width_m)
+
+    n_override = None
+    if mains.get("boxes_per_side") is not None:
+        n_override, _ = state.clamp_int(
+            mains["boxes_per_side"], 6, 24, "mains.boxes_per_side",
+            "Mains boxes per side limited to 6–24 (KSL).",
+        )
+
+    d=build_line(api,"Mains","KSL",MAINS_X,my,throw, n_override=n_override)
+    state.effective["mains"] = {
+        "spread_ft": round(my * 2.0 / FT, 2),
+        "boxes_per_side": d["n"],
+    }
+    build_sub_array(api, width_m, adv=adv, state=state)
+    build_front_fills(api, width_m, my, adv=adv, state=state)
     # coverage_end = distance where mains level variance stays <= 3-4 dB. Estimated from
     # the mains BOX COUNT (delay-1 distance + hand-off overlap), capped at the design
     # throw. TRUE value comes from ArrayCalc's Direct-SPL curve; pass mains_variance_limit_m.
