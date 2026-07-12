@@ -1,10 +1,24 @@
 "use client";
 
-import { useState } from "react";
-import { GenerateResponse, ApiError, Units } from "@/lib/types";
+import { useEffect, useMemo, useState } from "react";
+import {
+  GenerateResponse,
+  ApiError,
+  Units,
+  Notice,
+} from "@/lib/types";
+import { computeAutoDefaults, toFeet } from "@/lib/defaults";
 import PlanPreview from "./components/PlanPreview";
 import SubsystemCards from "./components/SubsystemCards";
 import PartsList from "./components/PartsList";
+import AdvancedPanels, {
+  AdvFormState,
+  defaultsToForm,
+  effectiveToForm,
+  formToAdvanced,
+} from "./components/AdvancedPanels";
+
+type Mode = "simple" | "advanced";
 
 function downloadDbpr(base64: string, filename: string) {
   const bytes = atob(base64);
@@ -20,12 +34,33 @@ function downloadDbpr(base64: string, filename: string) {
 }
 
 export default function Home() {
+  const [mode, setMode] = useState<Mode>("simple");
   const [width, setWidth] = useState("220");
   const [depth, setDepth] = useState("450");
   const [units, setUnits] = useState<Units>("ft");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState<string[]>([]);
   const [result, setResult] = useState<GenerateResponse | null>(null);
+  const [notices, setNotices] = useState<Notice[]>([]);
+  const [adv, setAdv] = useState<AdvFormState>(() =>
+    defaultsToForm(computeAutoDefaults(220, 450)),
+  );
+
+  const widthFt = toFeet(parseFloat(width) || 220, units);
+  const depthFt = toFeet(parseFloat(depth) || 450, units);
+
+  // Prefill advanced fields from auto-defaults when venue size changes (and no result yet).
+  useEffect(() => {
+    if (mode !== "advanced") return;
+    if (result) return;
+    setAdv(defaultsToForm(computeAutoDefaults(widthFt, depthFt)));
+  }, [mode, widthFt, depthFt, result]);
+
+  const sourceKeys = useMemo(() => {
+    if (!result) return ["Mains", "Sub Array", "Front Fills", "Out Fills"];
+    const roles = Array.from(new Set(result.design.subsystems.map((s) => s.role)));
+    return roles;
+  }, [result]);
 
   const generate = async () => {
     setErrors([]);
@@ -38,10 +73,14 @@ export default function Home() {
     setLoading(true);
     setResult(null);
     try {
+      const body: Record<string, unknown> = { width_ft: w, depth_ft: d, units };
+      if (mode === "advanced") {
+        body.advanced = formToAdvanced(adv);
+      }
       const res = await fetch("/api/generate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ width_ft: w, depth_ft: d, units }),
+        body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) {
@@ -49,7 +88,12 @@ export default function Home() {
         setErrors(err.messages ?? [err.message ?? "Something went wrong."]);
         return;
       }
-      setResult(data as GenerateResponse);
+      const ok = data as GenerateResponse;
+      setResult(ok);
+      setNotices(ok.notices ?? []);
+      if (mode === "advanced" && ok.effective) {
+        setAdv((prev) => effectiveToForm(ok.effective, prev));
+      }
     } catch {
       setErrors(["Could not reach the design engine. Please try again."]);
     } finally {
@@ -73,12 +117,15 @@ export default function Home() {
 
       <div className="wrap">
         <div className="hero">
-          <div className="kicker">Simple mode</div>
+          <div className="kicker">{mode === "simple" ? "Simple mode" : "Advanced mode"}</div>
           <h1>Describe the field. Get a system.</h1>
           <p>
             Enter a flat, rectangular venue&rsquo;s dimensions and DesignCalc lays out a complete
             house-style d&amp;b system &mdash; mains, subs, fills and delays &mdash; as a top-down plan
             and a valid ArrayCalc <code>.dbpr</code> you can open and refine.
+            {mode === "advanced" && (
+              <> Override spread, counts, delays and labels; risky acoustics stay engine-derived.</>
+            )}
           </p>
         </div>
 
@@ -86,6 +133,29 @@ export default function Home() {
           {/* --- input panel --- */}
           <div className="panel">
             <h2>Venue</h2>
+
+            <div className="field">
+              <label>Mode</label>
+              <div className="seg">
+                <button
+                  type="button"
+                  className={mode === "simple" ? "on" : ""}
+                  onClick={() => {
+                    setMode("simple");
+                    setNotices([]);
+                  }}
+                >
+                  Simple
+                </button>
+                <button
+                  type="button"
+                  className={mode === "advanced" ? "on" : ""}
+                  onClick={() => setMode("advanced")}
+                >
+                  Advanced
+                </button>
+              </div>
+            </div>
 
             <div className="field">
               <label htmlFor="width">Width</label>
@@ -130,6 +200,15 @@ export default function Home() {
                 </button>
               </div>
             </div>
+
+            {mode === "advanced" && (
+              <AdvancedPanels
+                form={adv}
+                setForm={setAdv}
+                notices={notices}
+                sourceKeys={sourceKeys}
+              />
+            )}
 
             {errors.length > 0 && (
               <ul className="errors" style={{ listStyle: "none", padding: "12px 14px", margin: "0 0 16px" }}>
@@ -176,6 +255,9 @@ export default function Home() {
                         .filter((p) => p.category === "Loudspeakers")
                         .reduce((n, p) => n + p.qty, 0)}{" "}
                       loudspeakers &middot; file integrity: {result.meta.integrity}
+                      {result.notices?.length ? (
+                        <> &middot; {result.notices.length} clamp notice{result.notices.length > 1 ? "s" : ""}</>
+                      ) : null}
                     </div>
                   </div>
                   <div className="dl-row">
@@ -184,6 +266,14 @@ export default function Home() {
                     </button>
                   </div>
                 </div>
+
+                {result.notices?.length > 0 && (
+                  <ul className="notices notices-banner">
+                    {result.notices.map((n, i) => (
+                      <li key={i}>{n.message}</li>
+                    ))}
+                  </ul>
+                )}
 
                 <PlanPreview design={result.design} />
 

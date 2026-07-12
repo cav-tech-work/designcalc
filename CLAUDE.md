@@ -72,8 +72,8 @@ keep them in sync. Known polish item: label crowding on very narrow venues (< ~6
 
 ## Roadmap (not built yet)
 
-1. **Advanced mode** — expose engine parameters (mains L/R spread, delay distances, box counts,
-   input sources) in a richer form. Same engine.
+1. ~~**Advanced mode**~~ — **shipped.** Hybrid overrides (positional/quantity hard + clamped;
+   frame/splay/trim guided). See `ADVANCED_MODE_SPEC.md`.
 2. **Upload & revamp** — drag in a `.dbpr`, read its venue, redesign/improve.
 3. Preview v2 (side-section), accounts/saved designs, then beyond flat ground.
 
