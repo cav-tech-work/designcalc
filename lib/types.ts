@@ -1,4 +1,4 @@
-// Shared types for the DesignCalc frontend — mirror the /api/generate response.
+// Shared types for the DesignCalc frontend — mirror the /api/generate request + response.
 
 export type Units = "ft" | "m";
 
@@ -63,9 +63,77 @@ export interface Meta {
   venue: string;
 }
 
+export interface Notice {
+  field: string;
+  requested: number;
+  applied: number;
+  message: string;
+}
+
+export interface DelayRingOverride {
+  distance_ft: number;
+  boxes_per_side?: number | null;
+}
+
+export interface AdvancedMains {
+  spread_ft?: number | null;
+  boxes_per_side?: number | null;
+}
+
+export interface AdvancedSubs {
+  stacks?: number | null;
+  spacing_ft?: number | null;
+}
+
+export interface AdvancedOutFills {
+  enabled?: boolean | null;
+  boxes_per_side?: number | null;
+}
+
+export interface AdvancedFrontFills {
+  enabled?: boolean | null;
+  count?: number | null;
+}
+
+export interface AdvancedDelays {
+  mode?: "auto" | "manual";
+  rings?: DelayRingOverride[];
+}
+
+export interface AdvancedInput {
+  mains?: AdvancedMains;
+  subs?: AdvancedSubs;
+  out_fills?: AdvancedOutFills;
+  front_fills?: AdvancedFrontFills;
+  delays?: AdvancedDelays;
+  sources?: Record<string, string>;
+}
+
+export interface EffectiveDelays {
+  mode?: "auto" | "manual";
+  rings?: { distance_ft: number; boxes_per_side: number }[];
+}
+
+export interface Effective {
+  mains?: { spread_ft?: number; boxes_per_side?: number };
+  subs?: { stacks?: number; spacing_ft?: number };
+  out_fills?: { enabled?: boolean; boxes_per_side?: number | null };
+  front_fills?: { enabled?: boolean; count?: number };
+  delays?: EffectiveDelays;
+}
+
+export interface GenerateRequest {
+  width_ft: number;
+  depth_ft: number;
+  units?: Units;
+  advanced?: AdvancedInput;
+}
+
 export interface GenerateResponse {
   design: Design;
   meta: Meta;
+  effective: Effective;
+  notices: Notice[];
   dbpr_base64: string;
   filename: string;
 }
