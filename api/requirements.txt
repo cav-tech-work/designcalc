@@ -1,0 +1,2 @@
+# DesignCalc engine API has no third-party dependencies.
+# It uses only the Python standard library (sqlite3, json, base64, http.server).

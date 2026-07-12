@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>DesignCalc — preview (450 × 220 ft)</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+:root{
+  --bg:#0a0a0b;--panel:#141416;--panel-2:#1b1b1e;--line:#2a2a2f;--line-soft:#202024;
+  --text:#f4f4f5;--muted:#9a9aa2;--muted-2:#6c6c74;--accent:#e2001a;--accent-dim:#a80014;
+  --radius:10px;--radius-sm:7px;--font:'Inter',-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased}
+.wrap{max-width:1180px;margin:0 auto;padding:0 24px}
+.topbar{border-bottom:1px solid var(--line-soft);position:sticky;top:0;background:rgba(10,10,11,.9);backdrop-filter:blur(8px);z-index:5}
+.topbar .row{display:flex;align-items:center;justify-content:space-between;height:60px}
+.brand{display:flex;align-items:baseline;gap:10px}
+.brand .mark{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.brand .mark .dot{color:var(--accent)}
+.brand .tag{font-size:12.5px;color:var(--muted-2);font-weight:500}
+.topbar .meta{font-size:12.5px;color:var(--muted-2)}
+.hero{padding:40px 0 8px}
+.hero .kicker{color:var(--accent);font-size:12px;font-weight:600;letter-spacing:.08em;text-transform:uppercase;margin-bottom:14px}
+.hero h1{font-size:30px;letter-spacing:-.01em;margin:0;max-width:640px}
+.hero p{color:var(--muted);font-size:15px;margin-top:12px;max-width:620px;line-height:1.55}
+.grid{display:grid;grid-template-columns:320px 1fr;gap:24px;align-items:start;padding:28px 0 60px}
+@media(max-width:900px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius);padding:20px}
+.panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 16px}
+.field{margin-bottom:16px}
+.field label{display:block;font-size:13px;margin-bottom:7px;font-weight:500}
+.field .hint{font-size:11.5px;color:var(--muted-2);margin-top:6px}
+.input-row{display:flex;gap:8px}
+input{width:100%;background:var(--panel-2);border:1px solid var(--line);color:var(--text);border-radius:var(--radius-sm);padding:11px 12px;font-size:15px;font-family:var(--font)}
+.unit{display:inline-flex;align-items:center;padding:0 12px;font-size:13px;color:var(--muted);border:1px solid var(--line);border-radius:var(--radius-sm);background:var(--panel-2)}
+.seg{display:inline-flex;border:1px solid var(--line);border-radius:var(--radius-sm);overflow:hidden}
+.seg button{background:var(--panel-2);color:var(--muted);border:none;padding:8px 14px;font-size:13px;cursor:pointer;font-family:var(--font)}
+.seg button.on{background:var(--accent);color:#fff}
+.btn{width:100%;background:var(--accent);color:#fff;border:none;border-radius:var(--radius-sm);padding:13px 16px;font-size:15px;font-weight:600;cursor:pointer;font-family:var(--font)}
+.btn-ghost{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:var(--radius-sm);padding:10px 14px;font-size:13.5px;font-weight:500;cursor:pointer;font-family:var(--font)}
+.results{display:flex;flex-direction:column;gap:24px}
+.result-head{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px}
+.result-head .title{font-size:18px}
+.result-head .sub{color:var(--muted);font-size:13px;margin-top:3px}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(190px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line-soft);border-radius:var(--radius-sm);padding:14px}
+.card .role{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600}
+.card .swatch{width:10px;height:10px;border-radius:2px;flex:none}
+.card .model{color:var(--muted);font-size:12px;margin-top:2px}
+.card .stat{display:flex;justify-content:space-between;font-size:12.5px;margin-top:9px}
+.card .stat .k{color:var(--muted-2)}
+table.parts{width:100%;border-collapse:collapse;font-size:13px}
+table.parts th{text-align:left;color:var(--muted);font-weight:500;font-size:11.5px;text-transform:uppercase;letter-spacing:.05em;padding:8px 10px;border-bottom:1px solid var(--line)}
+table.parts td{padding:9px 10px;border-bottom:1px solid var(--line-soft)}
+table.parts td.qty{text-align:right;font-variant-numeric:tabular-nums}
+.cat-tag{font-size:11px;color:var(--muted-2)}
+.notes{display:grid;grid-template-columns:repeat(auto-fill,minmax(150px,1fr));gap:10px}
+.note{background:var(--panel-2);border:1px solid var(--line-soft);border-radius:var(--radius-sm);padding:11px 12px}
+.note .k{font-size:11px;color:var(--muted-2);text-transform:uppercase;letter-spacing:.05em}
+.note .v{font-size:15px;margin-top:4px}
+.h2sec{font-size:13px;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 14px}
+.footer{border-top:1px solid var(--line-soft);color:var(--muted-2);font-size:12px;padding:20px 0 40px;max-width:720px;line-height:1.5}
+.pvbadge{background:var(--panel-2);border:1px solid var(--line);color:var(--muted);font-size:11px;padding:3px 9px;border-radius:20px}
+</style>
+</head>
+<body>
+<div class="topbar"><div class="wrap row">
+  <div class="brand"><span class="mark">Design<span class="dot">Calc</span></span><span class="tag">flat-ground system designer</span></div>
+  <span class="meta">outputs ArrayCalc .dbpr</span>
+</div></div>
+
+<div class="wrap">
+  <div class="hero">
+    <div class="kicker">Simple mode &nbsp;·&nbsp; <span class="pvbadge">static preview — real engine output</span></div>
+    <h1>Describe the field. Get a system.</h1>
+    <p>Enter a flat, rectangular venue's dimensions and DesignCalc lays out a complete house-style d&amp;b system — mains, subs, fills and delays — as a top-down plan and a valid ArrayCalc <code>.dbpr</code> you can open and refine.</p>
+  </div>
+
+  <div class="grid">
+    <div class="panel">
+      <h2>Venue</h2>
+      <div class="field"><label>Width</label><div class="input-row"><input value="220" /><span class="unit">ft</span></div><div class="hint">Audience-area width, side to side.</div></div>
+      <div class="field"><label>Depth</label><div class="input-row"><input value="450" /><span class="unit">ft</span></div><div class="hint">Stage to the back of the audience.</div></div>
+      <div class="field"><label>Units</label><div class="seg"><button class="on">Feet</button><button>Metres</button></div></div>
+      <button class="btn">Generate design</button>
+    </div>
+
+    <div>
+      <div class="results">
+        <div class="result-head">
+          <div><div class="title">450' × 220' flat ground</div>
+          <div class="sub">10 subsystems · 124 loudspeakers · file integrity: ok</div></div>
+          <button class="btn-ghost">↓ Download .dbpr</button>
+        </div>
+        <svg id="plan" viewBox="0 0 720 560" width="100%" style="display:block;background:#0d0d0f;border-radius:8px;border:1px solid #1b1b1e"></svg>
+
+        <div class="panel"><h2>Design notes</h2><div class="notes" id="notes"></div></div>
+        <div><h2 class="h2sec">Subsystems</h2><div class="cards" id="cards"></div></div>
+        <div class="panel">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px"><h2 style="margin:0">Parts list</h2><button class="btn-ghost">Download CSV</button></div>
+          <table class="parts"><thead><tr><th>Category</th><th>Item</th><th style="text-align:right">Qty</th></tr></thead><tbody id="parts"></tbody></table>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="footer">DesignCalc produces a house-style starting design for flat, rectangular open-ground venues. ArrayCalc remains the authority for acoustic prediction and rigging safety — always verify the generated project before deployment.</div>
+</div>
+
+<script>
+const DATA = {"design": {"venue": {"width_ft": 220.0, "depth_ft": 450.0, "width_m": 67.06, "depth_m": 137.16, "front_offset_m": 4.57}, "subsystems": [{"id": "sg_1", "role": "Mains", "side": "R", "label": "Mains R", "box_model": "KSL", "box_count": 16, "position": {"depth_m": 1.5, "lateral_m": -10.67, "depth_ft": 4.9, "lateral_ft": -35.0}, "aim_deg": 0.0, "lowest_edge_ft": 19.9, "delay_ms": null, "source_label": "Mains R"}, {"id": "sg_2", "role": "Mains", "side": "L", "label": "Mains L", "box_model": "KSL", "box_count": 16, "position": {"depth_m": 1.5, "lateral_m": 10.67, "depth_ft": 4.9, "lateral_ft": 35.0}, "aim_deg": 0.0, "lowest_edge_ft": 19.9, "delay_ms": null, "source_label": "Mains L"}, {"id": "sg_3", "role": "Sub Array", "side": "C", "label": "Sub Array", "box_model": "SL-SUB", "box_count": 24, "position": {"depth_m": 0.0, "lateral_m": 0.0, "depth_ft": 0.0, "lateral_ft": 0.0}, "aim_deg": null, "lowest_edge_ft": null, "delay_ms": null, "source_label": "Sub Array"}, {"id": "sg_4", "role": "Front Fills", "side": "C", "label": "Front Fills", "box_model": "A-Series", "box_count": 8, "position": {"depth_m": 0.0, "lateral_m": 0.0, "depth_ft": 0.0, "lateral_ft": 0.0}, "aim_deg": null, "lowest_edge_ft": null, "delay_ms": null, "source_label": "Front Fills"}, {"id": "sg_5", "role": "Out Fills", "side": "R", "label": "Out Fills R", "box_model": "V-Series", "box_count": 10, "position": {"depth_m": 0.8, "lateral_m": -17.67, "depth_ft": 2.6, "lateral_ft": -58.0}, "aim_deg": 0.0, "lowest_edge_ft": 13.9, "delay_ms": null, "source_label": "Out Fills R"}, {"id": "sg_6", "role": "Out Fills", "side": "L", "label": "Out Fills L", "box_model": "V-Series", "box_count": 10, "position": {"depth_m": 0.8, "lateral_m": 17.67, "depth_ft": 2.6, "lateral_ft": 58.0}, "aim_deg": 0.0, "lowest_edge_ft": 13.9, "delay_ms": null, "source_label": "Out Fills L"}, {"id": "sg_7", "role": "Delay 1", "side": "R", "label": "Delay 1 R", "box_model": "KSL", "box_count": 10, "position": {"depth_m": 57.89, "lateral_m": -10.67, "depth_ft": 189.9, "lateral_ft": -35.0}, "aim_deg": 0.0, "lowest_edge_ft": 13.4, "delay_ms": null, "source_label": "Delay 1 R"}, {"id": "sg_8", "role": "Delay 1", "side": "L", "label": "Delay 1 L", "box_model": "KSL", "box_count": 10, "position": {"depth_m": 57.89, "lateral_m": 10.67, "depth_ft": 189.9, "lateral_ft": 35.0}, "aim_deg": 0.0, "lowest_edge_ft": 13.4, "delay_ms": null, "source_label": "Delay 1 L"}, {"id": "sg_9", "role": "Delay 2", "side": "R", "label": "Delay 2 R", "box_model": "V-Series", "box_count": 10, "position": {"depth_m": 92.56, "lateral_m": -10.67, "depth_ft": 303.7, "lateral_ft": -35.0}, "aim_deg": 0.0, "lowest_edge_ft": 13.9, "delay_ms": null, "source_label": "Delay 2 R"}, {"id": "sg_10", "role": "Delay 2", "side": "L", "label": "Delay 2 L", "box_model": "V-Series", "box_count": 10, "position": {"depth_m": 92.56, "lateral_m": 10.67, "depth_ft": 303.7, "lateral_ft": 35.0}, "aim_deg": 0.0, "lowest_edge_ft": 13.9, "delay_ms": null, "source_label": "Delay 2 L"}], "parts": [{"category": "Loudspeakers", "item": "KSL", "qty": 52}, {"category": "Loudspeakers", "item": "V-Series", "qty": 40}, {"category": "Loudspeakers", "item": "SL-SUB", "qty": 24}, {"category": "Loudspeakers", "item": "A-Series", "qty": 8}, {"category": "Amplifiers", "item": "D80", "qty": 23}, {"category": "Rigging", "item": "V Flying frame", "qty": 4}, {"category": "Rigging", "item": "KSL Flying frame", "qty": 4}]}, "meta": {"integrity": "ok", "frame_angle": -5.0, "lowest_edge_ft": 19.9, "mains_coverage_end_m": 63.22, "coverage_end_is_estimate": true, "out_fills": true, "delay_rings": [{"ring": 1, "x_m": 57.89, "system": "KSL", "delay_ms": 164, "covers_to_m": 97.89, "lcr": false}, {"ring": 2, "x_m": 92.56, "system": "V-Series", "delay_ms": 266, "covers_to_m": 132.56, "lcr": false}], "venue": "450.0x220.0 ft (137x67 m)"}};
+const D = DATA.design, M = DATA.meta;
+function roleColor(role){const r=role.toLowerCase();
+  if(r.startsWith('main'))return'#e2001a';if(r.startsWith('sub'))return'#f0f0f2';
+  if(r.startsWith('front'))return'#35c46a';if(r.startsWith('out'))return'#e5a300';
+  if(r.startsWith('delay'))return'#4aa3ff';return'#9a9aa2';}
+
+// ---- plan (same mapping as PlanPreview.tsx) ----
+(function(){
+  const v=D.venue, W=720,H=560,pad=46;
+  const totalDepth=v.front_offset_m+v.depth_m, halfW=v.width_m/2;
+  const s=Math.min((W-pad*2)/v.width_m,(H-pad*2)/totalDepth), cx=W/2;
+  const X=l=>cx-l*s, Y=d=>pad+d*s;
+  const L=X(halfW),R=X(-halfW),T=Y(v.front_offset_m),B=Y(totalDepth);
+  let g=`<rect x="${L}" y="${T}" width="${R-L}" height="${B-T}" fill="#111214" stroke="#2a2a2f" rx="3"/>`;
+  g+=`<line x1="${cx}" y1="${T}" x2="${cx}" y2="${B}" stroke="#1f1f23" stroke-dasharray="3 5"/>`;
+  g+=`<rect x="${L}" y="${pad-16}" width="${R-L}" height="16" fill="#1b1b1e" stroke="#2a2a2f" rx="2"/>`;
+  g+=`<text x="${cx}" y="${pad-4}" text-anchor="middle" font-size="9.5" fill="#6c6c74" letter-spacing="1.5">STAGE</text>`;
+  [.25,.5,.75,1].forEach(f=>{const dm=totalDepth*f,yy=Y(dm),ft=Math.round(dm/0.3048);
+    g+=`<line x1="${L-6}" y1="${yy}" x2="${L}" y2="${yy}" stroke="#3a3a40"/><text x="${L-9}" y="${yy+3}" text-anchor="end" font-size="8.5" fill="#6c6c74">${ft}'</text>`;});
+  g+=`<text x="${cx}" y="${B+18}" text-anchor="middle" font-size="9.5" fill="#6c6c74">${v.width_ft}' wide · ${v.depth_ft}' deep</text>`;
+  D.subsystems.forEach(sub=>{
+    const c=roleColor(sub.role),x=X(sub.position.lateral_m),y=Y(sub.position.depth_m),r=sub.role.toLowerCase();
+    if(r.startsWith('sub')){const w=Math.max(60,Math.min(220,sub.box_count*6));g+=`<rect x="${x-w/2}" y="${y-4}" width="${w}" height="8" rx="2" fill="${c}" opacity="0.9"/>`;}
+    else if(r.startsWith('main')||r.startsWith('delay')||r.startsWith('out')){const n=Math.min(sub.box_count,16);for(let i=0;i<n;i++)g+=`<rect x="${x-5.5}" y="${y+i*3.8}" width="11" height="3.2" rx="0.8" fill="${c}" opacity="0.92"/>`;}
+    else{g+=`<rect x="${x-5}" y="${y-5}" width="10" height="10" rx="2" transform="rotate(45 ${x} ${y})" fill="${c}"/>`;}
+    const below=r.startsWith('sub')||r.startsWith('front'),ly=below?y+20:y-8;
+    g+=`<text x="${x}" y="${ly}" text-anchor="middle" font-size="9" fill="${c}" font-weight="600">${sub.label}</text>`;
+    g+=`<text x="${x}" y="${ly+10}" text-anchor="middle" font-size="8" fill="#8a8a92">${sub.box_model} ×${sub.box_count}</text>`;
+  });
+  document.getElementById('plan').innerHTML=g;
+})();
+
+// ---- notes ----
+let nh=`<div class="note"><div class="k">Frame angle</div><div class="v">${M.frame_angle}°</div></div>
+<div class="note"><div class="k">Lowest edge</div><div class="v">${M.lowest_edge_ft}'</div></div>
+<div class="note"><div class="k">Mains reach</div><div class="v">${Math.round(M.mains_coverage_end_m/0.3048)}'</div></div>
+<div class="note"><div class="k">Out fills</div><div class="v">${M.out_fills?'Yes':'No'}</div></div>`;
+M.delay_rings.forEach(r=>nh+=`<div class="note"><div class="k">Delay ${r.ring}</div><div class="v">${r.delay_ms} ms</div></div>`);
+document.getElementById('notes').innerHTML=nh;
+
+// ---- cards ----
+document.getElementById('cards').innerHTML=D.subsystems.map(sub=>{const c=roleColor(sub.role);
+  const lat=sub.position.lateral_ft===0?'centre':Math.abs(sub.position.lateral_ft)+"' "+sub.side;
+  let s=`<div class="card"><div class="role"><span class="swatch" style="background:${c}"></span>${sub.label}</div>
+  <div class="model">${sub.box_model} · ${sub.box_count} boxes</div>
+  <div class="stat"><span class="k">Depth</span><span class="v">${sub.position.depth_ft}'</span></div>
+  <div class="stat"><span class="k">Lateral</span><span class="v">${lat}</span></div>`;
+  if(sub.lowest_edge_ft!=null)s+=`<div class="stat"><span class="k">Lowest edge</span><span class="v">${sub.lowest_edge_ft}'</span></div>`;
+  s+=`<div class="stat"><span class="k">Source</span><span class="v">${sub.source_label}</span></div></div>`;return s;}).join('');
+
+// ---- parts ----
+const cats=[];D.parts.forEach(p=>{if(!cats.includes(p.category))cats.push(p.category)});
+let ph='';cats.forEach(cat=>{D.parts.filter(p=>p.category===cat).forEach((p,i)=>{
+  ph+=`<tr><td class="cat-tag">${i===0?cat:''}</td><td>${p.item}</td><td class="qty">${p.qty}</td></tr>`;});});
+document.getElementById('parts').innerHTML=ph;
+</script>
+</body>
+</html>
