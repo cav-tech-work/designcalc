@@ -10,7 +10,7 @@ downloadable as a valid **ArrayCalc `.dbpr`** project, with a parts list.
 
 - **Live:** https://designcalc-roan.vercel.app
 - **Repo:** https://github.com/cav-tech-work/designcalc (private; org `cav-tech-work`)
-- **Owner:** Joyjeet Panday (CEO). Claude acts as PM + builder.
+- **Owner:** Joyjeet Panday. Claude acts as PM + builder.
 - Full product spec: `PRD_DesignCalc.md`. Architecture: `ARCHITECTURE.md`. Handoff: `HANDOFF.md`.
 
 ## Stack
@@ -79,5 +79,5 @@ keep them in sync. Known polish item: label crowding on very narrow venues (< ~6
 
 ## Decision log
 
-See `PRD_DesignCalc.md §14` for CEO-approved decisions (primary user = rental/production shop;
+See `PRD_DesignCalc.md §14` for approved decisions (primary user = rental/production shop;
 Simple mode first; reuse Python engine; stateless; name = DesignCalc; etc.).

@@ -1,8 +1,8 @@
 # DesignCalc — Product Requirements Document (MVP)
 
-**Owner:** Joyjeet Panday (CEO)
+**Owner:** Joyjeet Panday
 **PM / build:** Claude
-**Status:** Draft v1 — for CEO review
+**Status:** Draft v1 — for review
 **Last updated:** 2026-07-13
 
 ---
@@ -69,7 +69,7 @@ Scope discipline: all three stay on the roadmap; only Simple mode ships in v1.
 ### Out of scope (explicit non-goals for v1)
 - Advanced mode and Upload/revamp mode.
 - Accounts, saved designs, share links, history.
-- Pricing / quotes (removed from scope by CEO).
+- Pricing / quotes (removed from scope).
 - Side-section / elevation view and 3D preview.
 - Arenas, multi-plane venues, raked/curved audience areas, balconies.
 - SPL simulation in-browser (ArrayCalc remains the acoustic authority).
@@ -212,7 +212,7 @@ both are stateless.
 - Accompanying docs to be produced with the repo: `README.md` (run/deploy), `ARCHITECTURE.md`,
   and a `HANDOFF.md` mapping PRD → code.
 
-## 14. Decision log (CEO-approved)
+## 14. Decision log (approved)
 
 | # | Decision | Choice |
 |---|----------|--------|
