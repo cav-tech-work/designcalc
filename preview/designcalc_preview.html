@@ -116,29 +116,47 @@ function roleColor(role){const r=role.toLowerCase();
   if(r.startsWith('front'))return'#35c46a';if(r.startsWith('out'))return'#e5a300';
   if(r.startsWith('delay'))return'#4aa3ff';return'#9a9aa2';}
 
-// ---- plan (same mapping as PlanPreview.tsx) ----
+// ---- plan (mirrors PlanPreview.tsx: fixed downstage band + to-scale field) ----
 (function(){
-  const v=D.venue, W=720,H=560,pad=46;
-  const totalDepth=v.front_offset_m+v.depth_m, halfW=v.width_m/2;
-  const s=Math.min((W-pad*2)/v.width_m,(H-pad*2)/totalDepth), cx=W/2;
-  const X=l=>cx-l*s, Y=d=>pad+d*s;
-  const L=X(halfW),R=X(-halfW),T=Y(v.front_offset_m),B=Y(totalDepth);
-  let g=`<rect x="${L}" y="${T}" width="${R-L}" height="${B-T}" fill="#111214" stroke="#2a2a2f" rx="3"/>`;
-  g+=`<line x1="${cx}" y1="${T}" x2="${cx}" y2="${B}" stroke="#1f1f23" stroke-dasharray="3 5"/>`;
-  g+=`<rect x="${L}" y="${pad-16}" width="${R-L}" height="16" fill="#1b1b1e" stroke="#2a2a2f" rx="2"/>`;
-  g+=`<text x="${cx}" y="${pad-4}" text-anchor="middle" font-size="9.5" fill="#6c6c74" letter-spacing="1.5">STAGE</text>`;
-  [.25,.5,.75,1].forEach(f=>{const dm=totalDepth*f,yy=Y(dm),ft=Math.round(dm/0.3048);
-    g+=`<line x1="${L-6}" y1="${yy}" x2="${L}" y2="${yy}" stroke="#3a3a40"/><text x="${L-9}" y="${yy+3}" text-anchor="end" font-size="8.5" fill="#6c6c74">${ft}'</text>`;});
-  g+=`<text x="${cx}" y="${B+18}" text-anchor="middle" font-size="9.5" fill="#6c6c74">${v.width_ft}' wide · ${v.depth_ft}' deep</text>`;
-  D.subsystems.forEach(sub=>{
-    const c=roleColor(sub.role),x=X(sub.position.lateral_m),y=Y(sub.position.depth_m),r=sub.role.toLowerCase();
-    if(r.startsWith('sub')){const w=Math.max(60,Math.min(220,sub.box_count*6));g+=`<rect x="${x-w/2}" y="${y-4}" width="${w}" height="8" rx="2" fill="${c}" opacity="0.9"/>`;}
-    else if(r.startsWith('main')||r.startsWith('delay')||r.startsWith('out')){const n=Math.min(sub.box_count,16);for(let i=0;i<n;i++)g+=`<rect x="${x-5.5}" y="${y+i*3.8}" width="11" height="3.2" rx="0.8" fill="${c}" opacity="0.92"/>`;}
-    else{g+=`<rect x="${x-5}" y="${y-5}" width="10" height="10" rx="2" transform="rotate(45 ${x} ${y})" fill="${c}"/>`;}
-    const below=r.startsWith('sub')||r.startsWith('front'),ly=below?y+20:y-8;
-    g+=`<text x="${x}" y="${ly}" text-anchor="middle" font-size="9" fill="${c}" font-weight="600">${sub.label}</text>`;
-    g+=`<text x="${x}" y="${ly+10}" text-anchor="middle" font-size="8" fill="#8a8a92">${sub.box_model} ×${sub.box_count}</text>`;
+  const v=D.venue, W=720,H=560, leftPad=46,rightPad=22;
+  const rectLeft=leftPad, rectRight=W-rightPad, cx=(rectLeft+rectRight)/2;
+  const sx=(rectRight-rectLeft)/(v.width_m||1);
+  const X=l=>cx-l*sx;
+  const stageY=20,stageH=13, bandBottom=188, fieldTop=202, fieldBottom=524;
+  const totalDepth=v.front_offset_m+v.depth_m;
+  const yField=d=>{const span=(totalDepth-v.front_offset_m)||1;const f=Math.max(0,Math.min(1,(d-v.front_offset_m)/span));return fieldTop+f*(fieldBottom-fieldTop);};
+
+  function hang(x,topY,sub,maxN,bh){
+    const c=roleColor(sub.role),n=Math.min(sub.box_count,maxN),bw=11,gap=0.7,ht=n*(bh+gap);
+    let o=`<text x="${x}" y="${topY-6}" text-anchor="middle" font-size="9" fill="${c}" font-weight="600">${sub.label}</text>`;
+    for(let i=0;i<n;i++)o+=`<rect x="${x-bw/2}" y="${topY+i*(bh+gap)}" width="${bw}" height="${bh}" rx="0.8" fill="${c}" opacity="0.92"/>`;
+    o+=`<text x="${x}" y="${topY+ht+10}" text-anchor="middle" font-size="8" fill="#8a8a92">${sub.box_model} ×${sub.box_count}</text>`;
+    return o;
+  }
+
+  let g=`<rect x="${rectLeft}" y="${fieldTop}" width="${rectRight-rectLeft}" height="${fieldBottom-fieldTop}" fill="#111214" stroke="#26262a" rx="3"/>`;
+  g+=`<line x1="${cx}" y1="${fieldTop}" x2="${cx}" y2="${fieldBottom}" stroke="#1c1c20" stroke-dasharray="3 6"/>`;
+  g+=`<rect x="${cx-90}" y="${stageY}" width="180" height="${stageH}" fill="#1b1b1e" stroke="#2a2a2f" rx="2"/>`;
+  g+=`<text x="${cx}" y="${stageY+9}" text-anchor="middle" font-size="9" fill="#7a7a82" letter-spacing="2">STAGE</text>`;
+  g+=`<line x1="${rectLeft}" y1="${bandBottom}" x2="${rectRight}" y2="${bandBottom}" stroke="#26262a" stroke-dasharray="2 4"/>`;
+  g+=`<text x="${rectLeft}" y="${bandBottom-6}" font-size="8" fill="#5a5a62" letter-spacing="0.5">downstage — near-stage detail, not to scale</text>`;
+  [.25,.5,.75,1].forEach(f=>{const dm=v.front_offset_m+(totalDepth-v.front_offset_m)*f,yy=yField(dm),ft=Math.round(dm/0.3048);
+    g+=`<line x1="${rectLeft-6}" y1="${yy}" x2="${rectLeft}" y2="${yy}" stroke="#3a3a40"/><text x="${rectLeft-9}" y="${yy+3}" text-anchor="end" font-size="8.5" fill="#6c6c74">${ft}'</text>`;});
+  g+=`<text x="${cx}" y="${fieldBottom+18}" text-anchor="middle" font-size="9.5" fill="#6c6c74">${v.width_ft}' wide · ${v.depth_ft}' deep</text>`;
+
+  const near=D.subsystems.filter(s=>s.position.depth_m<20), field=D.subsystems.filter(s=>s.position.depth_m>=20);
+  near.forEach(s=>{const r=s.role.toLowerCase();
+    if(r.startsWith('main')||r.startsWith('out')){g+=hang(X(s.position.lateral_m),72,s,16,3.6);}
+    else if(r.startsWith('sub')){const x=X(s.position.lateral_m),y=84,w=Math.max(70,Math.min(rectRight-rectLeft-40,s.box_count*6)),c=roleColor(s.role);
+      g+=`<text x="${x}" y="${y-9}" text-anchor="middle" font-size="9" fill="${c}" font-weight="600">${s.label}</text>`;
+      g+=`<rect x="${x-w/2}" y="${y}" width="${w}" height="8" rx="2" fill="${c}" opacity="0.9"/>`;
+      g+=`<text x="${x}" y="${y+20}" text-anchor="middle" font-size="8" fill="#8a8a92">${s.box_model} ×${s.box_count}</text>`;}
+    else if(r.startsWith('front')){const x=X(s.position.lateral_m),y=138,c=roleColor(s.role);
+      g+=`<rect x="${x-5}" y="${y-5}" width="10" height="10" rx="2" transform="rotate(45 ${x} ${y})" fill="${c}"/>`;
+      g+=`<text x="${x}" y="${y+20}" text-anchor="middle" font-size="9" fill="${c}" font-weight="600">${s.label}</text>`;
+      g+=`<text x="${x}" y="${y+31}" text-anchor="middle" font-size="8" fill="#8a8a92">${s.box_model} ×${s.box_count}</text>`;}
   });
+  field.forEach(s=>{g+=hang(X(s.position.lateral_m),yField(s.position.depth_m)-18,s,10,3.0);});
   document.getElementById('plan').innerHTML=g;
 })();
 

@@ -37,3 +37,6 @@ venv/
 # generated design files (never commit outputs)
 *.dbpr
 !api/_engine/NewProject_Skeleton.dbpr
+
+# typescript build info
+tsconfig.tsbuildinfo
