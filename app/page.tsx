@@ -7,12 +7,13 @@ import {
   Units,
   Notice,
 } from "@/lib/types";
-import { computeAutoDefaults, toFeet } from "@/lib/defaults";
+import { computeAutoDefaults, convertLenString, toFeet } from "@/lib/defaults";
 import PlanPreview from "./components/PlanPreview";
 import SubsystemCards from "./components/SubsystemCards";
 import PartsList from "./components/PartsList";
 import AdvancedPanels, {
   AdvFormState,
+  convertAdvFormUnits,
   defaultsToForm,
   effectiveToForm,
   formToAdvanced,
@@ -43,18 +44,26 @@ export default function Home() {
   const [result, setResult] = useState<GenerateResponse | null>(null);
   const [notices, setNotices] = useState<Notice[]>([]);
   const [adv, setAdv] = useState<AdvFormState>(() =>
-    defaultsToForm(computeAutoDefaults(220, 450)),
+    defaultsToForm(computeAutoDefaults(220, 450), "ft"),
   );
 
   const widthFt = toFeet(parseFloat(width) || 220, units);
   const depthFt = toFeet(parseFloat(depth) || 450, units);
 
+  const setUnitsAndConvert = (next: Units) => {
+    if (next === units) return;
+    setWidth((w) => convertLenString(w, units, next));
+    setDepth((d) => convertLenString(d, units, next));
+    setAdv((prev) => convertAdvFormUnits(prev, units, next));
+    setUnits(next);
+  };
+
   // Prefill advanced fields from auto-defaults when venue size changes (and no result yet).
   useEffect(() => {
     if (mode !== "advanced") return;
     if (result) return;
-    setAdv(defaultsToForm(computeAutoDefaults(widthFt, depthFt)));
-  }, [mode, widthFt, depthFt, result]);
+    setAdv(defaultsToForm(computeAutoDefaults(widthFt, depthFt), units));
+  }, [mode, widthFt, depthFt, units, result]);
 
   const sourceKeys = useMemo(() => {
     if (!result) return ["Mains", "Sub Array", "Front Fills", "Out Fills"];
@@ -75,7 +84,7 @@ export default function Home() {
     try {
       const body: Record<string, unknown> = { width_ft: w, depth_ft: d, units };
       if (mode === "advanced") {
-        body.advanced = formToAdvanced(adv);
+        body.advanced = formToAdvanced(adv, units);
       }
       const res = await fetch("/api/generate", {
         method: "POST",
@@ -92,7 +101,7 @@ export default function Home() {
       setResult(ok);
       setNotices(ok.notices ?? []);
       if (mode === "advanced" && ok.effective) {
-        setAdv((prev) => effectiveToForm(ok.effective, prev));
+        setAdv((prev) => effectiveToForm(ok.effective, prev, units));
       }
     } catch {
       setErrors(["Could not reach the design engine. Please try again."]);
@@ -192,10 +201,18 @@ export default function Home() {
             <div className="field">
               <label>Units</label>
               <div className="seg">
-                <button className={units === "ft" ? "on" : ""} onClick={() => setUnits("ft")}>
+                <button
+                  type="button"
+                  className={units === "ft" ? "on" : ""}
+                  onClick={() => setUnitsAndConvert("ft")}
+                >
                   Feet
                 </button>
-                <button className={units === "m" ? "on" : ""} onClick={() => setUnits("m")}>
+                <button
+                  type="button"
+                  className={units === "m" ? "on" : ""}
+                  onClick={() => setUnitsAndConvert("m")}
+                >
                   Metres
                 </button>
               </div>
@@ -207,6 +224,7 @@ export default function Home() {
                 setForm={setAdv}
                 notices={notices}
                 sourceKeys={sourceKeys}
+                units={units}
               />
             )}
 

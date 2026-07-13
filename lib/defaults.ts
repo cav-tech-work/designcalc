@@ -1,6 +1,8 @@
 /** Client-side mirrors of flatground_core auto-defaults for Advanced form pre-fill. */
 
-const FT = 0.3048;
+import type { Units } from "./types";
+
+export const FT = 0.3048;
 const FRONT_OFFSET = 15 * FT;
 const MAINS_X = 1.5;
 const THROW_WINDOW = 68;
@@ -26,9 +28,30 @@ function ffCount(widthM: number) {
   return clamp(Math.round((6 * widthM) / 46 / 2) * 2, 4, 12);
 }
 
-/** Convert form width/depth in the selected units into feet. */
-export function toFeet(value: number, units: "ft" | "m"): number {
+/** Convert a length in the selected units into feet (API / engine units). */
+export function toFeet(value: number, units: Units): number {
   return units === "m" ? value / FT : value;
+}
+
+/** Convert feet into the selected display units. */
+export function fromFeet(feet: number, units: Units): number {
+  return units === "m" ? feet * FT : feet;
+}
+
+/** Pretty-print a length that is stored in feet, for the current display units. */
+export function formatLenFromFt(feet: number, units: Units, digits = 2): string {
+  const v = fromFeet(feet, units);
+  const d = units === "m" ? Math.max(digits, 2) : digits;
+  const rounded = Math.round(v * 10 ** d) / 10 ** d;
+  return String(rounded);
+}
+
+/** Convert a numeric string between display units, preserving physical length. */
+export function convertLenString(value: string, from: Units, to: Units): string {
+  if (from === to) return value;
+  const n = parseFloat(value);
+  if (!Number.isFinite(n)) return value;
+  return formatLenFromFt(toFeet(n, from), to);
 }
 
 export interface AutoDefaults {

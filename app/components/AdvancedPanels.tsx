@@ -1,7 +1,13 @@
 "use client";
 
-import { Notice, Effective } from "@/lib/types";
-import { AutoDefaults } from "@/lib/defaults";
+import { Notice, Effective, Units } from "@/lib/types";
+import {
+  AutoDefaults,
+  convertLenString,
+  formatLenFromFt,
+  fromFeet,
+  toFeet,
+} from "@/lib/defaults";
 
 export interface AdvFormState {
   mainsSpread: string;
@@ -13,35 +19,39 @@ export interface AdvFormState {
   ffEnabled: boolean;
   ffCount: string;
   delayMode: "auto" | "manual";
-  rings: { distance_ft: string; boxes_per_side: string }[];
+  rings: { distance: string; boxes_per_side: string }[];
   sources: Record<string, string>;
 }
 
-export function defaultsToForm(d: AutoDefaults): AdvFormState {
+export function defaultsToForm(d: AutoDefaults, units: Units = "ft"): AdvFormState {
   return {
-    mainsSpread: String(d.mains.spread_ft),
+    mainsSpread: formatLenFromFt(d.mains.spread_ft, units),
     mainsBoxes: String(d.mains.boxes_per_side),
     subStacks: String(d.subs.stacks),
-    subSpacing: String(d.subs.spacing_ft),
+    subSpacing: formatLenFromFt(d.subs.spacing_ft, units),
     outEnabled: d.out_fills.enabled,
     outBoxes: String(d.out_fills.boxes_per_side),
     ffEnabled: d.front_fills.enabled,
     ffCount: String(d.front_fills.count),
     delayMode: d.delays.mode,
     rings: d.delays.rings.map((r) => ({
-      distance_ft: String(r.distance_ft),
+      distance: formatLenFromFt(r.distance_ft, units),
       boxes_per_side: String(r.boxes_per_side),
     })),
     sources: {},
   };
 }
 
-export function effectiveToForm(eff: Effective, prev: AdvFormState): AdvFormState {
+export function effectiveToForm(
+  eff: Effective,
+  prev: AdvFormState,
+  units: Units = "ft",
+): AdvFormState {
   const next = { ...prev };
-  if (eff.mains?.spread_ft != null) next.mainsSpread = String(eff.mains.spread_ft);
+  if (eff.mains?.spread_ft != null) next.mainsSpread = formatLenFromFt(eff.mains.spread_ft, units);
   if (eff.mains?.boxes_per_side != null) next.mainsBoxes = String(eff.mains.boxes_per_side);
   if (eff.subs?.stacks != null) next.subStacks = String(eff.subs.stacks);
-  if (eff.subs?.spacing_ft != null) next.subSpacing = String(eff.subs.spacing_ft);
+  if (eff.subs?.spacing_ft != null) next.subSpacing = formatLenFromFt(eff.subs.spacing_ft, units);
   if (eff.out_fills?.enabled != null) next.outEnabled = eff.out_fills.enabled;
   if (eff.out_fills?.boxes_per_side != null) {
     next.outBoxes = String(eff.out_fills.boxes_per_side);
@@ -51,11 +61,25 @@ export function effectiveToForm(eff: Effective, prev: AdvFormState): AdvFormStat
   if (eff.delays?.mode) next.delayMode = eff.delays.mode;
   if (eff.delays?.rings) {
     next.rings = eff.delays.rings.map((r) => ({
-      distance_ft: String(r.distance_ft),
+      distance: formatLenFromFt(r.distance_ft, units),
       boxes_per_side: String(r.boxes_per_side),
     }));
   }
   return next;
+}
+
+/** Convert length fields in the advanced form when the units toggle changes. */
+export function convertAdvFormUnits(form: AdvFormState, from: Units, to: Units): AdvFormState {
+  if (from === to) return form;
+  return {
+    ...form,
+    mainsSpread: convertLenString(form.mainsSpread, from, to),
+    subSpacing: convertLenString(form.subSpacing, from, to),
+    rings: form.rings.map((r) => ({
+      ...r,
+      distance: convertLenString(r.distance, from, to),
+    })),
+  };
 }
 
 function num(s: string): number | null {
@@ -63,15 +87,20 @@ function num(s: string): number | null {
   return Number.isFinite(v) ? v : null;
 }
 
-export function formToAdvanced(form: AdvFormState) {
+/** Build the API `advanced` object; length fields are always sent in feet. */
+export function formToAdvanced(form: AdvFormState, units: Units = "ft") {
+  const lenFt = (s: string) => {
+    const v = num(s);
+    return v == null ? null : toFeet(v, units);
+  };
   const advanced: Record<string, unknown> = {
     mains: {
-      spread_ft: num(form.mainsSpread),
+      spread_ft: lenFt(form.mainsSpread),
       boxes_per_side: num(form.mainsBoxes),
     },
     subs: {
       stacks: num(form.subStacks),
-      spacing_ft: num(form.subSpacing),
+      spacing_ft: lenFt(form.subSpacing),
     },
     out_fills: {
       enabled: form.outEnabled,
@@ -87,7 +116,7 @@ export function formToAdvanced(form: AdvFormState) {
         form.delayMode === "manual"
           ? form.rings
               .map((r) => ({
-                distance_ft: num(r.distance_ft),
+                distance_ft: lenFt(r.distance),
                 boxes_per_side: num(r.boxes_per_side),
               }))
               .filter((r) => r.distance_ft != null)
@@ -103,7 +132,9 @@ export function formToAdvanced(form: AdvFormState) {
 }
 
 function noticesFor(prefix: string, notices: Notice[]) {
-  return notices.filter((n) => n.field === prefix || n.field.startsWith(prefix + ".") || n.field.startsWith(prefix + "["));
+  return notices.filter(
+    (n) => n.field === prefix || n.field.startsWith(prefix + ".") || n.field.startsWith(prefix + "["),
+  );
 }
 
 function NoticeList({ items }: { items: Notice[] }) {
@@ -122,13 +153,20 @@ export default function AdvancedPanels({
   setForm,
   notices,
   sourceKeys,
+  units,
 }: {
   form: AdvFormState;
   setForm: (f: AdvFormState) => void;
   notices: Notice[];
   sourceKeys: string[];
+  units: Units;
 }) {
   const patch = (p: Partial<AdvFormState>) => setForm({ ...form, ...p });
+  const unit = units;
+  const subMin = fromFeet(5, units);
+  const subMax = fromFeet(8, units);
+  const subStep = units === "m" ? 0.05 : 0.1;
+  const defaultRingDistance = formatLenFromFt(250, units);
 
   return (
     <div className="adv-panels">
@@ -142,8 +180,9 @@ export default function AdvancedPanels({
               type="number"
               value={form.mainsSpread}
               onChange={(e) => patch({ mainsSpread: e.target.value })}
+              step={units === "m" ? 0.1 : 1}
             />
-            <span className="unit">ft</span>
+            <span className="unit">{unit}</span>
           </div>
         </div>
         <div className="field">
@@ -182,11 +221,11 @@ export default function AdvancedPanels({
               type="number"
               value={form.subSpacing}
               onChange={(e) => patch({ subSpacing: e.target.value })}
-              min={5}
-              max={8}
-              step={0.1}
+              min={subMin}
+              max={subMax}
+              step={subStep}
             />
-            <span className="unit">ft</span>
+            <span className="unit">{unit}</span>
           </div>
         </div>
         <NoticeList items={noticesFor("subs", notices)} />
@@ -270,7 +309,7 @@ export default function AdvancedPanels({
                   rings:
                     form.rings.length > 0
                       ? form.rings
-                      : [{ distance_ft: "250", boxes_per_side: "8" }],
+                      : [{ distance: defaultRingDistance, boxes_per_side: "8" }],
                 })
               }
             >
@@ -287,14 +326,15 @@ export default function AdvancedPanels({
                   <div className="input-row">
                     <input
                       type="number"
-                      value={ring.distance_ft}
+                      value={ring.distance}
                       onChange={(e) => {
                         const rings = form.rings.slice();
-                        rings[i] = { ...ring, distance_ft: e.target.value };
+                        rings[i] = { ...ring, distance: e.target.value };
                         patch({ rings });
                       }}
+                      step={units === "m" ? 0.1 : 1}
                     />
-                    <span className="unit">ft</span>
+                    <span className="unit">{unit}</span>
                   </div>
                 </div>
                 <div className="field">
@@ -329,7 +369,7 @@ export default function AdvancedPanels({
                   patch({
                     rings: [
                       ...form.rings,
-                      { distance_ft: "", boxes_per_side: "8" },
+                      { distance: "", boxes_per_side: "8" },
                     ],
                   })
                 }
