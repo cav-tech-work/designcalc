@@ -5,6 +5,14 @@ export const metadata: Metadata = {
   title: "DesignCalc — flat-ground d&b system designer",
   description:
     "Enter a flat, rectangular venue's dimensions and get a house-style d&b sound system design as a top-down plan and a downloadable ArrayCalc .dbpr file.",
+  icons: {
+    icon: [
+      { url: "/favicon-32.png", type: "image/png", sizes: "32x32" },
+      { url: "/favicon-16.png", type: "image/png", sizes: "16x16" },
+      { url: "/favicon.png", type: "image/png", sizes: "512x512" },
+    ],
+    apple: [{ url: "/favicon.png", type: "image/png", sizes: "512x512" }],
+  },
 };
 
 export default function RootLayout({
